@@ -1,0 +1,23 @@
+[2026-02-28 11:37:06] local.ERROR: Pipeline YARA Scan Failed:   
+[2026-02-28 11:37:07] local.ERROR: ClamAV Error:   
+[2026-02-28 11:41:11] local.DEBUG: Executing YARA Command:  ["python","/mnt/d/SecOps New/tools/yara_scanner.py","/tmp/phpaNC2CN","/mnt/d/SecOps New/storage/app/yara_rules"] 
+[2026-02-28 11:41:12] local.ERROR: Pipeline YARA Scan Failed: Traceback (most recent call last):
+  File "/mnt/d/SecOps New/tools/yara_scanner.py", line 55, in <module>
+    print(json.dumps(result))
+          ^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/__init__.py", line 231, in dumps
+    return _default_encoder.encode(obj)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/encoder.py", line 200, in encode
+    chunks = self.iterencode(o, _one_shot=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/encoder.py", line 258, in iterencode
+    return _iterencode(o, 0)
+           ^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/encoder.py", line 180, in default
+    raise TypeError(f'Object of type {o.__class__.__name__} '
+TypeError: Object of type StringMatch is not JSON serializable
+ | Exit Code: 1  
+[2026-02-28 11:41:12] local.DEBUG: Executing ClamAV Command:  ["clamscan","--no-summary","/tmp/phpaNC2CN"] 
+[2026-02-28 11:43:33] local.DEBUG: Executing YARA Command:  ["python","/mnt/d/SecOps New/tools/yara_scanner.py","/tmp/php220hyF","/mnt/d/SecOps New/storage/app/yara_rules"] 
+[2026-02-28 11:43:33] local.DEBUG: Executing ClamAV Command:  ["clamscan","--no-summary","/tmp/php220hyF"] 

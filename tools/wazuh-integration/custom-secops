@@ -1,0 +1,111 @@
+#!/var/ossec/framework/python/bin/python3
+# Wazuh → SecOps integration script
+
+import json
+import sys
+import time
+import os
+
+try:
+    import requests
+except ImportError:
+    print("Module 'requests' not found. Install with: pip install requests")
+    sys.exit(1)
+
+# === CONFIGURATION ===
+# SEC_OPS_WEBHOOK_URL is passed automatically by Wazuh as the third argument 
+# (hook_url config in ossec.conf). 
+# Example ossec.conf:
+# <integration>
+#     <name>custom-secops</name>
+#     <hook_url>http://YOUR_SECOPS_IP:8000/api/webhook/wazuh-alert</hook_url>
+#     <level>3</level>
+#     <alert_format>json</alert_format>
+# </integration>
+
+# === ALLOWED ALERTS FILTERING ===
+# Only alerts that contain one of the keywords below in their description will be sent.
+# All other alerts will be ignored.
+ALLOWED_ALERT_KEYWORDS = [
+    "ET SCAN Suspicious inbound to mySQL port 3306",
+    "NETSEC Suspicious inbound to MySQL 3306",
+    "ET WEB_SERVER ThinkPHP RCE Exploitation Attempt",
+    "ET WEB_SERVER /bin/sh In URI Possible Shell Command Execution Attempt"
+]
+
+debug_enabled = True
+pwd = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+log_file = f"{pwd}/logs/integrations-secops.log"
+if not os.path.exists(log_file):
+    os.makedirs(os.path.dirname(log_file), exist_ok=True)
+    with open(log_file, "w") as f:
+        f.write("=== SecOps Integration Log Start ===\n")
+
+now = time.strftime("%a %b %d %H:%M:%S %Z %Y")
+
+def debug(msg):
+    if debug_enabled:
+        msg = f"{now}: {msg}\n"
+        print(msg)
+        with open(log_file, "a") as f:
+            f.write(msg)
+
+def main(args):
+    debug("# Wazuh → SecOps script started")
+
+    if len(args) < 4:
+        debug("Error: Missing arguments. Expected <alert_file> <api_key> <hook_url>")
+        sys.exit(1)
+
+    alert_file = args[1]
+    hook_url = args[3]
+    
+    debug(f"# Reading alert from: {alert_file}")
+
+    try:
+        with open(alert_file, 'rb') as f:
+            last_line = f.read().decode('utf-8').splitlines()[-1]
+            if last_line.strip():
+                alert = json.loads(last_line)
+            else:
+                debug("Alert file is empty.")
+                return
+    except Exception as e:
+        debug(f"Error reading alert file: {e}")
+        sys.exit(1)
+
+    # === FILTERING LOGIC ===
+    rule_desc = alert.get("rule", {}).get("description", "")
+    
+    matched = False
+    for keyword in ALLOWED_ALERT_KEYWORDS:
+        if keyword.lower() in rule_desc.lower():
+            matched = True
+            debug(f"Alert matched allowed keyword: '{keyword}'")
+            break
+    
+    if not matched:
+        debug(f"Alert filtered out (no matching keyword for: {rule_desc})")
+        return  # Stop executing, don't send to SecOps
+
+    debug("# Sending alert to SecOps Webhook")
+    send_to_secops(alert, hook_url)
+
+def send_to_secops(payload, hook_url):
+    try:
+        response = requests.post(
+            hook_url,
+            headers={"Content-Type": "application/json", "Accept": "application/json"},
+            json=payload,
+            timeout=10,
+            verify=False # Set to True in production with valid SSL
+        )
+        debug(f"SecOps response: {response.status_code} - {response.text}")
+    except Exception as e:
+        debug(f"Error sending to SecOps: {e}")
+
+if __name__ == "__main__":
+    try:
+        main(sys.argv)
+    except Exception as e:
+        debug(f"Unhandled exception: {e}")
