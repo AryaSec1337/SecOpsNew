@@ -184,7 +184,7 @@ class WebhookScanController extends Controller
                 'clamav_result' => $scanRecord->clamav_result,
                 'vt_summary' => isset($scanRecord->vt_result) ? ($scanRecord->vt_result['attributes']['last_analysis_stats'] ?? null) : null,
                 'timestamps_stages' => $scanRecord->timestamps_stages,
-                'mitigation_log_id' => $mitigationLog->id
+                'webhook_alert_id' => $webhookAlert->id
             ]);
 
         } catch (\Exception $e) {
