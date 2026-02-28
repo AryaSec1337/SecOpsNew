@@ -53,12 +53,15 @@ def debug(msg):
 def main(args):
     debug("# Wazuh → SecOps script started")
 
-    if len(args) < 4:
-        debug("Error: Missing arguments. Expected <alert_file> <api_key> <hook_url>")
+    if len(args) < 3:
+        debug("Error: Missing arguments. Expected at least <alert_file> <hook_url>")
         sys.exit(1)
 
     alert_file = args[1]
-    hook_url = args[3]
+    
+    # If API key is not provided in ossec.conf, args[2] might be the hook_url, or args[3] is.
+    # Wazuh usually passes: script <alert> <apikey> <hook_url>
+    hook_url = args[3] if len(args) > 3 else args[2]
     
     debug(f"# Reading alert from: {alert_file}")
 
