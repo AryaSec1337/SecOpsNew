@@ -31,6 +31,29 @@ class WazuhWebhookController extends Controller
             $ruleDesc = $rule['description'] ?? null;
             $srcIp = $data['srcip'] ?? $data['src_ip'] ?? null;
 
+            // EXCLUSION: Drop specific Suricata Bad IP events from general Wazuh alerts
+            // so they only appear in the dedicated Bad IP Alerts menu.
+            $badIpPrefixes = [
+                "Suricata: Alert - ET CINS Active Threat Intelligence Poor Reputation IP group",
+                "Suricata: Alert - ET DROP Spamhaus DROP Listed Traffic Inbound group",
+                "Suricata: Alert - ET DROP Dshield Block Listed Source group"
+            ];
+            
+            if ($ruleDesc) {
+                foreach ($badIpPrefixes as $prefix) {
+                    if (str_starts_with(strtolower($ruleDesc), strtolower($prefix))) {
+                        Log::info('Wazuh alert dropped (Redirected to Bad IP system)', [
+                            'rule_description' => $ruleDesc,
+                            'src_ip' => $srcIp
+                        ]);
+                        return response()->json([
+                            'success' => true,
+                            'message' => 'Wazuh alert silently dropped (Belongs to Bad IP Alerts)',
+                        ], 200);
+                    }
+                }
+            }
+
             // Check if there is an active alert (New or Acknowledged) with the exact same rule description and source IP
             $existingAlert = WazuhAlert::where('rule_description', $ruleDesc)
                 ->where('src_ip', $srcIp)
