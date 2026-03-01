@@ -175,6 +175,7 @@ Route::prefix('wazuh-alerts')->name('wazuh-alerts.')->middleware('auth')->group(
     Route::post('/bulk-resolve', [\App\Http\Controllers\WazuhAlertController::class, 'bulkResolve'])->name('bulk-resolve');
     Route::get('/{wazuhAlert}', [\App\Http\Controllers\WazuhAlertController::class, 'show'])->name('show');
     Route::patch('/{wazuhAlert}/status', [\App\Http\Controllers\WazuhAlertController::class, 'updateStatus'])->name('update-status');
+    Route::post('/{wazuhAlert}/incident', [\App\Http\Controllers\WazuhAlertController::class, 'createIncident'])->name('incident');
 });
 
 // Phishing Link Scanner

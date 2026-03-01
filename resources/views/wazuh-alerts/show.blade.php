@@ -33,19 +33,33 @@
             </div>
         </div>
 
-        <!-- Status Update -->
-        <form method="POST" action="{{ route('wazuh-alerts.update-status', $wazuhAlert->id) }}" class="flex items-center gap-2">
-            @csrf
-            @method('PATCH')
-            <select name="status" class="bg-slate-800 border border-slate-700 text-slate-300 rounded-lg text-xs px-3 py-2 focus:ring-2 focus:ring-blue-500">
-                <option value="New" {{ $wazuhAlert->status === 'New' ? 'selected' : '' }}>New</option>
-                <option value="Acknowledged" {{ $wazuhAlert->status === 'Acknowledged' ? 'selected' : '' }}>Acknowledged</option>
-                <option value="Resolved" {{ $wazuhAlert->status === 'Resolved' ? 'selected' : '' }}>Resolved</option>
-            </select>
-            <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition-colors">
-                Update
-            </button>
-        </form>
+        <!-- Action Buttons -->
+        <div class="flex items-center gap-3">
+            <!-- Create Incident Button -->
+            @if($wazuhAlert->status !== 'Resolved')
+            <form method="POST" action="{{ route('wazuh-alerts.incident', $wazuhAlert->id) }}" onsubmit="return confirm('Are you sure you want to escalate this Wazuh Alert into an Incident Ticket? The alert will be marked as Resolved.')">
+                @csrf
+                <button type="submit" class="flex items-center gap-2 px-4 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 rounded-lg text-xs font-bold transition-colors border border-rose-500/20 hover:border-rose-500/40">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    Create Incident
+                </button>
+            </form>
+            @endif
+
+            <!-- Status Update -->
+            <form method="POST" action="{{ route('wazuh-alerts.update-status', $wazuhAlert->id) }}" class="flex items-center gap-2">
+                @csrf
+                @method('PATCH')
+                <select name="status" class="bg-slate-800 border border-slate-700 text-slate-300 rounded-lg text-xs px-3 py-2 focus:ring-2 focus:ring-blue-500">
+                    <option value="New" {{ $wazuhAlert->status === 'New' ? 'selected' : '' }}>New</option>
+                    <option value="Acknowledged" {{ $wazuhAlert->status === 'Acknowledged' ? 'selected' : '' }}>Acknowledged</option>
+                    <option value="Resolved" {{ $wazuhAlert->status === 'Resolved' ? 'selected' : '' }}>Resolved</option>
+                </select>
+                <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition-colors">
+                    Update
+                </button>
+            </form>
+        </div>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
