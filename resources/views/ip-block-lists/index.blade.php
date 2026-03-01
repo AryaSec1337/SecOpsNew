@@ -1,191 +1,260 @@
 @extends('layouts.dashboard')
 
 @section('content')
-<!-- Custom Styles -->
-<style>
-    .glass-panel {
-        background: rgba(10, 10, 15, 0.6);
-        backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-    }
-    .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
-    .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
-    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
-    
-    .bg-grid-pattern {
-        background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-        background-size: 30px 30px;
-    }
-</style>
-
-<div class="min-h-[calc(100vh-80px)] font-sans text-slate-300 relative overflow-hidden flex flex-col pt-6 pb-20 px-6 lg:px-10 z-10" x-data="{ expandedId: null, statusFilter: '{{ request('status', 'All') }}' }">
-    
-    <!-- Background -->
-    <div class="fixed inset-0 bg-slate-950 bg-grid-pattern pointer-events-none z-0"></div>
-
-    <div class="relative z-10 max-w-7xl mx-auto w-full">
-        <!-- HEADER -->
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
+<div class="mb-8" x-data="ipBlockLists()">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div class="flex items-center gap-3">
+            <div class="p-2 bg-rose-500/10 rounded-lg border border-rose-500/20">
+                <svg class="w-6 h-6 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
+            </div>
             <div>
-                <h1 class="text-3xl font-black text-white tracking-widest flex items-center gap-3">
-                    <svg class="w-8 h-8 text-rose-500 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
-                    LIST IP BLOCK
-                </h1>
-                <p class="text-sm text-slate-400 font-mono mt-1">> WEEK {{ $week }} / {{ $year }}</p>
+                <h1 class="text-2xl font-black text-white tracking-tight">List IP Block (Weekly)</h1>
+                <p class="text-sm text-slate-400 font-medium">Weekly aggregation of malicious IPs for infrastructure blocking. Week {{ $week }} / {{ $year }}</p>
             </div>
-            
-            <!-- Filters -->
-            <div class="flex gap-3 text-xs font-mono w-full md:w-auto">
-                <form action="{{ route('ip-block-lists.index') }}" method="GET" class="flex gap-2 w-full">
-                    <!-- Week Select -->
-                    <select name="week" class="bg-slate-800/80 border border-slate-700 text-slate-300 rounded px-3 py-2 outline-none focus:border-rose-500 w-full md:w-auto" onchange="this.form.submit()">
-                        <option value="{{ current_week() }}" {{ $week == current_week() && $year == current_year() ? 'selected' : '' }}>This Week</option>
-                        @foreach($availablePeriods as $period)
-                            <option value="{{ $period->week_number }}" {{ $week == $period->week_number && $year == $period->year ? 'selected' : '' }}>Week {{ $period->week_number }}</option>
-                        @endforeach
-                    </select>
+        </div>
+        
+        <div class="flex gap-2">
+            <a href="{{ route('ip-block-lists.export', ['week' => $week, 'year' => $year, 'status' => request('status', 'All')]) }}" target="_blank" class="px-4 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 hover:border-indigo-500/40 text-indigo-400 text-sm font-bold rounded-lg transition-colors flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                Export IPs (.TXT)
+            </a>
+        </div>
+    </div>
 
-                    <input type="hidden" name="year" value="{{ $year }}">
-
-                    <!-- Status Select -->
-                    <select name="status" class="bg-slate-800/80 border border-slate-700 text-slate-300 rounded px-3 py-2 outline-none focus:border-rose-500 w-full md:w-auto" onchange="this.form.submit()">
-                        <option value="All" {{ request('status') == 'All' ? 'selected' : '' }}>All Status</option>
-                        <option value="Pending" {{ request('status') == 'Pending' ? 'selected' : '' }}>Pending</option>
-                        <option value="Blocked" {{ request('status') == 'Blocked' ? 'selected' : '' }}>Blocked</option>
-                        <option value="Ignored" {{ request('status') == 'Ignored' ? 'selected' : '' }}>Ignored</option>
-                    </select>
-                </form>
+    <!-- Stats Dashboard -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div class="glass-panel p-5 rounded-2xl border border-white/5 flex items-center justify-between group hover:bg-slate-800/50 transition-colors">
+            <div>
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Total IPs</p>
+                <p class="text-3xl font-black text-white leading-none">{{ number_format($stats['total']) }}</p>
+            </div>
+            <div class="w-12 h-12 rounded-xl bg-slate-800 flex items-center justify-center text-slate-400 border border-slate-700">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
             </div>
         </div>
 
-        <!-- STATS CARDS -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
-             <div class="glass-panel rounded-xl p-5 border-l-4 border-l-blue-500 flex justify-between items-center relative overflow-hidden group">
-                 <div class="absolute right-0 top-0 opacity-10 transform translate-x-4 -translate-y-4 group-hover:scale-110 transition-transform duration-500">
-                    <svg class="w-24 h-24 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M12 4v16m8-8H4"></path></svg>
-                 </div>
-                 <div>
-                     <div class="text-[10px] uppercase text-slate-500 font-bold tracking-widest mb-1">Total IPs</div>
-                     <div class="text-3xl font-black text-white font-mono">{{ $stats['total'] }}</div>
-                 </div>
-             </div>
-             <div class="glass-panel rounded-xl p-5 border-l-4 border-l-amber-500 flex justify-between items-center relative overflow-hidden group">
-                 <div class="absolute right-0 top-0 opacity-10 transform translate-x-4 -translate-y-4 group-hover:scale-110 transition-transform duration-500">
-                    <svg class="w-24 h-24 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                 </div>
-                 <div>
-                     <div class="text-[10px] uppercase text-amber-500 font-bold tracking-widest mb-1">Pending</div>
-                     <div class="text-3xl font-black text-white font-mono">{{ $stats['pending'] }}</div>
-                 </div>
-             </div>
-             <div class="glass-panel rounded-xl p-5 border-l-4 border-l-emerald-500 flex justify-between items-center relative overflow-hidden group">
-                 <div class="absolute right-0 top-0 opacity-10 transform translate-x-4 -translate-y-4 group-hover:scale-110 transition-transform duration-500">
-                    <svg class="w-24 h-24 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                 </div>
-                 <div>
-                     <div class="text-[10px] uppercase text-emerald-500 font-bold tracking-widest mb-1">Blocked</div>
-                     <div class="text-3xl font-black text-white font-mono">{{ $stats['blocked'] }}</div>
-                 </div>
-             </div>
+        <div class="glass-panel p-5 rounded-2xl border border-white/5 flex items-center justify-between group hover:bg-slate-800/50 transition-colors">
+            <div>
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Pending</p>
+                <p class="text-3xl font-black text-amber-400 leading-none">{{ number_format($stats['pending']) }}</p>
+            </div>
+            <div class="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400 border border-amber-500/20">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
         </div>
 
-        <!-- MAIN TABLE -->
-        <div class="glass-panel rounded-xl border border-white/5 overflow-hidden flex flex-col">
-            <div class="overflow-x-auto custom-scrollbar">
-                <table class="w-full text-left border-collapse whitespace-nowrap">
-                    <thead class="bg-black/40 text-[10px] text-slate-500 uppercase tracking-widest border-b border-white/10">
-                        <tr>
-                            <th class="p-4 font-bold">IP Address</th>
-                            <th class="p-4 font-bold">Source</th>
-                            <th class="p-4 font-bold">Description</th>
-                            <th class="p-4 font-bold text-center">Status</th>
-                            <th class="p-4 font-bold text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="text-sm divide-y divide-white/5">
-                        @forelse($list as $ip)
-                            <tr class="hover:bg-white/5 transition-colors group cursor-pointer" @click="expandedId = expandedId === {{ $ip->id }} ? null : {{ $ip->id }}">
-                                <td class="p-4 font-mono font-bold text-slate-300">
-                                    <div class="flex items-center gap-2">
-                                        {{ $ip->ip_address }}
-                                    </div>
-                                    <div class="text-[10px] text-slate-500 mt-1 font-sans">{{ $ip->created_at->format('M d, Y H:i') }}</div>
-                                </td>
-                                <td class="p-4 text-xs font-mono text-slate-400">
-                                    {{ $ip->source }}
-                                </td>
-                                <td class="p-4 text-xs text-slate-300 max-w-xs truncate" title="{{ $ip->description }}">
-                                    {{ Str::limit($ip->description, 50) }}
-                                </td>
-                                <td class="p-4 text-center">
-                                    @if($ip->status === 'Pending')
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-500 border border-amber-500/20">Pending</span>
-                                    @elseif($ip->status === 'Blocked')
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Blocked</span>
-                                    @elseif($ip->status === 'Ignored')
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-500/10 text-slate-400 border border-slate-500/20">Ignored</span>
-                                    @endif
-                                </td>
-                                <td class="p-4 text-right">
-                                    <div class="flex justify-end items-center gap-2" @click.stop>
-                                        <!-- Actions dropdown or direct buttons -->
-                                        @if($ip->status === 'Pending')
-                                        <form action="{{ route('ip-block-lists.update', $ip) }}" method="POST" class="inline">
-                                            @csrf
-                                            @method('PUT')
-                                            <input type="hidden" name="status" value="Blocked">
-                                            <button type="submit" class="p-1.5 text-slate-400 hover:text-emerald-400 hover:bg-emerald-400/10 rounded transition-colors" title="Mark as Blocked">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                            </button>
-                                        </form>
-                                        @endif
-                                        
-                                        <a href="{{ route('investigation.ip-analyzer.index', ['ip' => $ip->ip_address]) }}" class="p-1.5 text-slate-400 hover:text-amber-400 hover:bg-amber-400/10 rounded transition-colors" title="IP Analyzer">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                                        </a>
+        <div class="glass-panel p-5 rounded-2xl border border-white/5 flex items-center justify-between group hover:bg-slate-800/50 transition-colors">
+            <div>
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Blocked</p>
+                <p class="text-3xl font-black text-emerald-400 leading-none">{{ number_format($stats['blocked']) }}</p>
+            </div>
+            <div class="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/20">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+        </div>
+    </div>
 
-                                        <form action="{{ route('ip-block-lists.destroy', $ip) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to remove this IP from the list?');">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-400/10 rounded transition-colors" title="Remove">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
+    <!-- Main Table Panel -->
+    <div class="glass-panel rounded-2xl border border-white/5 overflow-hidden">
+        <!-- Navbar Filters -->
+        <div class="p-4 border-b border-white/5 bg-slate-900/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <form method="GET" action="{{ route('ip-block-lists.index') }}" class="flex flex-wrap items-center gap-3 w-full">
+                <!-- Select Week -->
+                <select name="week" class="bg-slate-800 border border-slate-700 text-slate-200 rounded-lg text-sm px-4 py-2 focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none appearance-none pr-8">
+                    <option value="{{ current_week() }}" {{ $week == current_week() && $year == current_year() ? 'selected' : '' }}>This Week</option>
+                    @foreach($availablePeriods as $period)
+                        <option value="{{ $period->week_number }}" {{ $week == $period->week_number && $year == $period->year ? 'selected' : '' }}>Week {{ $period->week_number }} ({{ $period->year }})</option>
+                    @endforeach
+                </select>
+                <input type="hidden" name="year" value="{{ $year }}">
+
+                <!-- Status Select -->
+                <select name="status" class="bg-slate-800 border border-slate-700 text-slate-200 rounded-lg text-sm px-4 py-2 focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none appearance-none pr-8">
+                    <option value="All" {{ request('status') == 'All' ? 'selected' : '' }}>All Status</option>
+                    <option value="Pending" {{ request('status') == 'Pending' ? 'selected' : '' }}>Pending</option>
+                    <option value="Blocked" {{ request('status') == 'Blocked' ? 'selected' : '' }}>Blocked</option>
+                    <option value="Ignored" {{ request('status') == 'Ignored' ? 'selected' : '' }}>Ignored</option>
+                </select>
+
+                <button type="submit" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium rounded-lg transition-colors border border-slate-600">
+                    Filter
+                </button>
+            </form>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-900/80 border-b border-white/5 text-[10px] uppercase tracking-widest text-slate-500">
+                        <th class="px-5 py-4 w-12 text-center">No.</th>
+                        <th class="px-5 py-4 font-bold">Severity</th>
+                        <th class="px-5 py-4 font-bold">Source IP Info</th>
+                        <th class="px-5 py-4 font-bold">Destination</th>
+                        <th class="px-5 py-4 font-bold">Context / Reason</th>
+                        <th class="px-5 py-4 font-bold text-center">Status</th>
+                        <th class="px-5 py-4 font-bold text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5">
+                    @forelse($list as $index => $ip)
+                        <tr class="hover:bg-white/[0.02] transition-colors group">
+                            <td class="px-5 py-3 text-center text-slate-500 text-xs">{{ $index + 1 }}</td>
                             
-                            <!-- Expandable Row -->
-                            <tr x-show="expandedId === {{ $ip->id }}" x-collapse style="display: none;">
-                                <td colspan="5" class="p-0 border-b border-white/5">
-                                    <div class="p-6 bg-slate-900/50 border-y border-white/5 shadow-inner">
-                                        <h4 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Full Context / Description</h4>
-                                        <div class="bg-black/50 p-4 rounded border border-white/5 font-mono text-xs text-amber-500 break-words whitespace-normal leading-relaxed">
-                                            {{ $ip->description }}
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="5" class="p-8 text-center text-slate-500 italic">
-                                    <div class="flex flex-col items-center justify-center">
-                                        <svg class="w-12 h-12 mb-3 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                                        No IP Block records found for the selected week.
-                                    </div>
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-        </div>
+                            <!-- Severity -->
+                            <td class="px-5 py-3">
+                                @php
+                                    $severityColor = match(strtolower((string)$ip->signature_severity)) {
+                                        '1', 'high' => 'rose',
+                                        '2', 'medium' => 'orange',
+                                        '3', 'low' => 'amber',
+                                        '4', 'informational', 'info' => 'blue',
+                                        default => 'slate'
+                                    };
+                                @endphp
+                                <span class="px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider border bg-{{$severityColor}}-500/20 text-{{$severityColor}}-400 border-{{$severityColor}}-500/30">
+                                    {{ $ip->signature_severity ?: 'N/A' }}
+                                </span>
+                            </td>
 
+                            <!-- IP Address & Source -->
+                            <td class="px-5 py-3">
+                                <div class="flex flex-col gap-1">
+                                    <span class="px-2 py-1 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20 text-xs font-mono w-max">{{ $ip->ip_address }}</span>
+                                    <span class="text-[10px] text-slate-400 font-medium tracking-wide uppercase">{{ $ip->source }}</span>
+                                </div>
+                            </td>
+
+                            <!-- Destination -->
+                            <td class="px-5 py-3">
+                                @if($ip->dest_ip)
+                                    <div>
+                                        <div class="text-xs font-mono text-slate-300">{{ $ip->dest_ip }}{{ $ip->dest_port ? ':' . $ip->dest_port : '' }}</div>
+                                        <div class="text-[10px] text-slate-500 uppercase mt-0.5">{{ $ip->proto ?? 'TCP' }}</div>
+                                    </div>
+                                @else
+                                    <span class="text-slate-600 text-xs">—</span>
+                                @endif
+                            </td>
+
+                            <!-- Rule / Reason -->
+                            <td class="px-5 py-3 whitespace-normal min-w-[250px]">
+                                <div class="text-xs font-medium text-slate-200 line-clamp-2" title="{{ $ip->description }}">{{ $ip->description }}</div>
+                                @if($ip->reason)
+                                    <div class="mt-2 text-[10px] bg-slate-800/80 border border-slate-700 p-2 rounded text-slate-300">
+                                        <span class="text-indigo-400 font-bold uppercase mr-1">Reason:</span> {{ $ip->reason }}
+                                    </div>
+                                @endif
+                            </td>
+
+                            <!-- Status -->
+                            <td class="px-5 py-3 text-center">
+                                @if($ip->status === 'Pending')
+                                    <span class="px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider border bg-amber-500/20 text-amber-400 border-amber-500/30">Pending</span>
+                                @elseif($ip->status === 'Blocked')
+                                    <span class="px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider border bg-emerald-500/20 text-emerald-400 border-emerald-500/30">Blocked</span>
+                                @elseif($ip->status === 'Ignored')
+                                    <span class="px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider border bg-slate-500/20 text-slate-400 border-slate-500/30">Ignored</span>
+                                @endif
+                            </td>
+
+                            <!-- Action -->
+                            <td class="px-5 py-3 text-right">
+                                <div class="flex items-center justify-end gap-2">
+                                    <button type="button" @click="openEditModal({{ $ip->id }}, '{{ $ip->status }}', '{{ addslashes($ip->reason) }}')" class="p-1.5 text-slate-400 hover:text-indigo-400 hover:bg-indigo-400/10 rounded transition-colors" title="Edit Reason/Status">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                    </button>
+
+                                    <a href="{{ route('investigation.ip-analyzer.index', ['ip' => $ip->ip_address]) }}" class="p-1.5 text-slate-400 hover:text-amber-400 hover:bg-amber-400/10 rounded transition-colors" title="IP Analyzer">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                    </a>
+
+                                    <form action="{{ route('ip-block-lists.destroy', $ip) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this log?');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-400/10 rounded transition-colors" title="Delete">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="7" class="px-5 py-12 text-center">
+                                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-800 border border-slate-700 mb-4">
+                                    <svg class="w-8 h-8 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                </div>
+                                <h3 class="text-sm font-bold text-slate-300 mb-1">No IP Blocks listed</h3>
+                                <p class="text-xs text-slate-500">The list for this week is currently empty.</p>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div x-show="showEditModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overflow-x-hidden bg-slate-950/80 backdrop-blur-sm" style="display: none;">
+        <div class="relative w-full max-w-md p-4 sm:p-6 bg-slate-900 border border-slate-700 rounded-2xl shadow-xl" @click.away="closeEditModal()">
+            <div class="flex justify-between items-center mb-5">
+                <h3 class="text-lg font-bold text-white">Edit Block Reason</h3>
+                <button type="button" @click="closeEditModal()" class="text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg text-sm p-1.5 ml-auto inline-flex items-center">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <form :action="editActionUrl" method="POST">
+                @csrf
+                @method('PUT')
+                
+                <div class="mb-4">
+                    <label class="block mb-2 text-xs font-bold text-slate-300 uppercase tracking-wide">Status</label>
+                    <select name="status" x-model="editData.status" class="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-lg text-sm px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none">
+                        <option value="Pending">Pending</option>
+                        <option value="Blocked">Blocked</option>
+                        <option value="Ignored">Ignored</option>
+                    </select>
+                </div>
+
+                <div class="mb-5">
+                    <label class="block mb-2 text-xs font-bold text-slate-300 uppercase tracking-wide">Reason / Details</label>
+                    <textarea name="reason" x-model="editData.reason" rows="4" class="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-lg text-sm px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none placeholder-slate-500" placeholder="e.g. Sent to infrastructure firewall on MM-DD-YYYY"></textarea>
+                </div>
+
+                <div class="flex justify-end gap-3">
+                    <button type="button" @click="closeEditModal()" class="px-4 py-2 text-sm font-medium text-slate-300 bg-slate-800 border border-slate-700 rounded-lg hover:bg-slate-700 transition-colors">Cancel</button>
+                    <button type="submit" class="px-4 py-2 text-sm font-bold text-white bg-indigo-600 rounded-lg hover:bg-indigo-500 focus:ring-4 focus:ring-indigo-500/50 transition-colors">Save Changes</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
+<script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('ipBlockLists', () => ({
+            showEditModal: false,
+            editActionUrl: '',
+            editData: {
+                status: 'Pending',
+                reason: ''
+            },
+            
+            openEditModal(id, status, reason) {
+                this.editActionUrl = `/ip-block-lists/${id}`;
+                this.editData.status = status;
+                this.editData.reason = reason;
+                this.showEditModal = true;
+            },
+            
+            closeEditModal() {
+                this.showEditModal = false;
+            }
+        }));
+    });
+</script>
 @endsection
 
 @php

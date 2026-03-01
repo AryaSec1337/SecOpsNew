@@ -179,6 +179,10 @@
                                         <input type="hidden" name="ip_address" :value="alert.src_ip">
                                         <input type="hidden" name="source" value="Bad IP Alert">
                                         <input type="hidden" name="description" :value="alert.rule_description">
+                                        <input type="hidden" name="dest_ip" :value="alert.dest_ip">
+                                        <input type="hidden" name="dest_port" :value="alert.dest_port">
+                                        <input type="hidden" name="proto" :value="alert.proto">
+                                        <input type="hidden" name="signature_severity" :value="alert.signature_severity">
                                         <button type="submit" class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 rounded transition-colors" title="Send to List IP Block">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
                                         </button>

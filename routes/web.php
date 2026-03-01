@@ -51,6 +51,10 @@ Route::resource('blocked-ips', \App\Http\Controllers\BlockedIpController::class)
     ->middleware('auth');
 
 // Weekly List IP Block
+Route::get('ip-block-lists/export', [\App\Http\Controllers\IpBlockListController::class, 'export'])
+    ->name('ip-block-lists.export')
+    ->middleware('auth');
+
 Route::resource('ip-block-lists', \App\Http\Controllers\IpBlockListController::class)
     ->only(['index', 'store', 'update', 'destroy'])
     ->middleware('auth');
