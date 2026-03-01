@@ -28,6 +28,36 @@ class WazuhWebhookController extends Controller
             $decoder = $payload['decoder'] ?? [];
             $syscheck = $payload['syscheck'] ?? null;
 
+            $ruleDesc = $rule['description'] ?? null;
+            $srcIp = $data['srcip'] ?? $data['src_ip'] ?? null;
+
+            // Check if there is an active alert (New or Acknowledged) with the exact same rule description and source IP
+            $existingAlert = WazuhAlert::where('rule_description', $ruleDesc)
+                ->where('src_ip', $srcIp)
+                ->whereIn('status', ['New', 'Acknowledged'])
+                ->first();
+
+            if ($existingAlert) {
+                // Deduplicate: Just update the timestamp to bump it up, don't create a new row
+                $existingAlert->update([
+                    'updated_at' => now(),
+                    // Optionally update the raw JSON to the latest one
+                    'raw_json' => $payload,
+                ]);
+
+                Log::info('Wazuh alert deduplicated', [
+                    'id' => $existingAlert->id,
+                    'rule_id' => $existingAlert->rule_id,
+                    'src_ip' => $srcIp,
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Wazuh alert deduplicated (existing updated)',
+                    'alert_id' => $existingAlert->id,
+                ], 200);
+            }
+
             $alert = WazuhAlert::create([
                 'alert_id'         => $payload['id'] ?? null,
                 'timestamp_wazuh'  => $payload['timestamp'] ?? null,
@@ -35,7 +65,7 @@ class WazuhWebhookController extends Controller
                 // Rule
                 'rule_id'          => $rule['id'] ?? null,
                 'rule_level'       => (int) ($rule['level'] ?? 0),
-                'rule_description' => $rule['description'] ?? null,
+                'rule_description' => $ruleDesc,
                 'rule_groups'      => $rule['groups'] ?? null,
                 'rule_mitre'       => $rule['mitre'] ?? null,
 
@@ -48,7 +78,7 @@ class WazuhWebhookController extends Controller
                 'manager_name'     => $manager['name'] ?? null,
 
                 // Network (from data object)
-                'src_ip'           => $data['srcip'] ?? $data['src_ip'] ?? null,
+                'src_ip'           => $srcIp,
                 'src_port'         => $data['srcport'] ?? $data['src_port'] ?? null,
                 'dst_ip'           => $data['dstip'] ?? $data['dst_ip'] ?? $data['dest_ip'] ?? null,
                 'dst_port'         => $data['dstport'] ?? $data['dst_port'] ?? $data['dest_port'] ?? null,

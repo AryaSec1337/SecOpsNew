@@ -53,4 +53,16 @@ class WazuhAlertController extends Controller
         $wazuhAlert->update(['status' => $request->status]);
         return back()->with('success', 'Alert status updated.');
     }
+
+    public function bulkResolve(Request $request)
+    {
+        $request->validate([
+            'alert_ids' => 'required|array',
+            'alert_ids.*' => 'exists:wazuh_alerts,id'
+        ]);
+
+        $count = WazuhAlert::whereIn('id', $request->alert_ids)->update(['status' => 'Resolved']);
+
+        return back()->with('success', "{$count} alerts have been resolved.");
+    }
 }

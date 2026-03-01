@@ -172,6 +172,7 @@ Route::prefix('webhook-alerts')->name('webhook-alerts.')->middleware('auth')->gr
 // Wazuh Alerts (SIEM)
 Route::prefix('wazuh-alerts')->name('wazuh-alerts.')->middleware('auth')->group(function () {
     Route::get('/', [\App\Http\Controllers\WazuhAlertController::class, 'index'])->name('index');
+    Route::post('/bulk-resolve', [\App\Http\Controllers\WazuhAlertController::class, 'bulkResolve'])->name('bulk-resolve');
     Route::get('/{wazuhAlert}', [\App\Http\Controllers\WazuhAlertController::class, 'show'])->name('show');
     Route::patch('/{wazuhAlert}/status', [\App\Http\Controllers\WazuhAlertController::class, 'updateStatus'])->name('update-status');
 });

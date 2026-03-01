@@ -98,12 +98,24 @@
     </div>
 
     <!-- Alerts Table -->
+    <form action="{{ route('wazuh-alerts.bulk-resolve') }}" method="POST" id="bulk-resolve-form">
+        @csrf
+        <div class="mb-3 flex justify-end">
+            <button type="submit" id="bulk-resolve-btn" class="hidden px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-bold shadow-lg shadow-emerald-600/20 transition-all items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                Resolve Selected
+            </button>
+        </div>
+        
     <div class="glass-panel rounded-2xl overflow-hidden border border-white/5 shadow-xl">
         <div class="overflow-x-auto">
             <table class="w-full text-left text-sm whitespace-nowrap">
                 <thead class="text-xs uppercase bg-slate-900/80 text-slate-400 font-bold tracking-wider">
                     <tr>
-                        <th class="px-5 py-4">Level</th>
+                        <th class="px-5 py-4 w-10">
+                            <input type="checkbox" id="select-all" class="w-4 h-4 rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-blue-500/50 focus:ring-offset-slate-900 transition-all">
+                        </th>
+                        <th class="px-5 py-4">Severity/Level</th>
                         <th class="px-5 py-4">Rule</th>
                         <th class="px-5 py-4">Agent</th>
                         <th class="px-5 py-4">Source IP</th>
@@ -115,6 +127,10 @@
                 <tbody class="divide-y divide-white/5">
                     @forelse($alerts as $alert)
                         <tr class="hover:bg-white/5 transition-colors group">
+                            <!-- Checkbox -->
+                            <td class="px-5 py-3">
+                                <input type="checkbox" name="alert_ids[]" value="{{ $alert->id }}" class="alert-checkbox w-4 h-4 rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-blue-500/50 focus:ring-offset-slate-900 transition-all" {{ $alert->status === 'Resolved' ? 'disabled' : '' }}>
+                            </td>
                             <!-- Level Badge -->
                             <td class="px-5 py-3">
                                 <div class="flex items-center gap-2">
@@ -184,7 +200,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="px-6 py-12 text-center text-slate-500">
+                            <td colspan="8" class="px-6 py-12 text-center text-slate-500">
                                 <svg class="w-12 h-12 mx-auto text-slate-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
                                 <div class="font-bold">No Wazuh alerts received yet.</div>
                                 <div class="text-xs mt-1">Configure your Wazuh Manager integration to send alerts to this endpoint.</div>
@@ -194,6 +210,8 @@
                 </tbody>
             </table>
         </div>
+    </form>
+
         
         @if($alerts->hasPages())
         <div class="px-6 py-4 border-t border-white/5 bg-slate-900/40">
@@ -202,4 +220,49 @@
         @endif
     </div>
 </div>
+
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const selectAllCheckbox = document.getElementById('select-all');
+        const alertCheckboxes = document.querySelectorAll('.alert-checkbox:not([disabled])');
+        const bulkResolveBtn = document.getElementById('bulk-resolve-btn');
+
+        // Toggle all checkboxes
+        if(selectAllCheckbox) {
+            selectAllCheckbox.addEventListener('change', function() {
+                alertCheckboxes.forEach(cb => {
+                    cb.checked = selectAllCheckbox.checked;
+                });
+                toggleBulkResolveButton();
+            });
+        }
+
+        // Toggle individual checkboxes
+        alertCheckboxes.forEach(cb => {
+            cb.addEventListener('change', function() {
+                // Update "select all" state
+                const allChecked = Array.from(alertCheckboxes).every(c => c.checked);
+                const someChecked = Array.from(alertCheckboxes).some(c => c.checked);
+                
+                selectAllCheckbox.checked = allChecked;
+                selectAllCheckbox.indeterminate = someChecked && !allChecked;
+                
+                toggleBulkResolveButton();
+            });
+        });
+
+        function toggleBulkResolveButton() {
+            const anyChecked = Array.from(alertCheckboxes).some(cb => cb.checked);
+            if(anyChecked) {
+                bulkResolveBtn.classList.remove('hidden');
+                bulkResolveBtn.classList.add('inline-flex');
+            } else {
+                bulkResolveBtn.classList.add('hidden');
+                bulkResolveBtn.classList.remove('inline-flex');
+            }
+        }
+    });
+</script>
+@endpush
 @endsection
