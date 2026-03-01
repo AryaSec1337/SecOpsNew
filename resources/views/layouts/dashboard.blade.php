@@ -295,8 +295,8 @@
              class="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 md:hidden"></div>
     </div>
 
-    <!-- Top Right Global Toast Notifications -->
-    <div class="fixed top-4 right-4 z-[60] flex flex-col gap-3 pointer-events-none" id="toast-container">
+    <!-- Bottom Right Global Toast Notifications -->
+    <div class="fixed bottom-4 right-4 z-[60] flex flex-col justify-end gap-3 pointer-events-none" id="toast-container">
         <template x-for="(toast, index) in toasts" :key="toast.id">
             <div x-show="toast.visible" 
                  x-transition:enter="transition ease-out duration-300 transform"
@@ -342,6 +342,7 @@
                 },
                 toasts: [],
                 toastIdCounter: 0,
+                lastSeenAt: null,
                 
                 init() {
                     this.fetchNotifications(true); // Initial fetch avoids triggering toasts
@@ -365,6 +366,8 @@
                         visible: true 
                     };
                     
+                    // Add to top so newest is nearest to bottom visually (since flex-col pushes down)
+                    // Wait, flex-col means oldest is at top, newest at bottom. We can just push.
                     this.toasts.push(newToast);
 
                     // Auto dismiss after 7 seconds
@@ -380,7 +383,12 @@
                 },
 
                 fetchNotifications(isInitial = false) {
-                    fetch('/notifications/pending', {
+                    let url = '/notifications/pending';
+                    if (this.lastSeenAt) {
+                        url += '?last_seen_at=' + encodeURIComponent(this.lastSeenAt);
+                    }
+
+                    fetch(url, {
                             headers: {
                                 'X-Requested-With': 'XMLHttpRequest',
                                 'Accept': 'application/json'
@@ -389,19 +397,35 @@
                         .then(res => res.json())
                         .then(data => {
                             
-                            // Check Bad IP Alerts
-                            if (!isInitial && data.badip_alerts && data.badip_alerts > this.notifications.badip_alerts) {
-                                const diff = data.badip_alerts - this.notifications.badip_alerts;
-                                const title = 'New Bad IP Alert Detected!';
-                                const msg = diff > 1 ? `${diff} new malicious IPs detected by Suricata.` : 'A new malicious IP has been detected by Suricata.';
+                            // Check Bad IP Alerts individually
+                            if (!isInitial && data.new_bad_ips && data.new_bad_ips.length > 0) {
+                                const targetUrl = "{{ route('bad-ip-alerts.index') }}";
                                 const iconClass = 'bg-rose-500/20 text-rose-400';
                                 const iconSvg = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>';
-                                const targetUrl = "{{ route('bad-ip-alerts.index') }}";
                                 
-                                this.addToast(title, msg, iconClass, iconSvg, targetUrl);
+                                // Iterate and spawn toast per IP
+                                data.new_bad_ips.forEach((ipData) => {
+                                    const title = 'New Bad IP Alert Detected!';
+                                    let msg = `IP: ${ipData.src_ip} | ${ipData.rule_description}`;
+                                    if(ipData.occurrences > 1) {
+                                        msg = `IP: ${ipData.src_ip} detected again (${ipData.occurrences}x) | ${ipData.rule_description}`;
+                                    }
+                                    
+                                    this.addToast(title, msg, iconClass, iconSvg, targetUrl);
+                                });
                             }
 
-                            this.notifications = data;
+                            // Update last_seen_at so we don't fetch them again
+                            if (data.max_seen_at) {
+                                this.lastSeenAt = data.max_seen_at;
+                            }
+
+                            this.notifications = {
+                                fum_alerts: data.fum_alerts,
+                                wazuh_alerts: data.wazuh_alerts,
+                                badip_alerts: data.badip_alerts,
+                                total: data.total
+                            };
                         })
                         .catch(err => console.error('Error fetching notifications:', err));
                 }
