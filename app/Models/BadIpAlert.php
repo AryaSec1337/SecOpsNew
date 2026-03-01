@@ -16,6 +16,8 @@ class BadIpAlert extends Model
         'dest_port',
         'proto',
         'signature_severity',
+        'occurrences',
+        'last_seen_at',
         'raw_data',
         'status',
     ];

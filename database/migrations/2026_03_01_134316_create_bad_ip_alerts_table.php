@@ -19,6 +19,8 @@ return new class extends Migration
             $table->string('dest_port')->nullable();
             $table->string('proto')->nullable();
             $table->string('signature_severity')->nullable();
+            $table->integer('occurrences')->default(1);
+            $table->timestamp('last_seen_at')->nullable();
             $table->json('raw_data')->nullable(); // Original wazuh document
             $table->string('status')->default('New'); // New, Acknowledged, Resolved
             $table->timestamps();

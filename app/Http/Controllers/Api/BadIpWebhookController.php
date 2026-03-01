@@ -46,6 +46,8 @@ class BadIpWebhookController extends Controller
 
                 if ($existingAlert) {
                     $existingAlert->update([
+                         'occurrences' => $existingAlert->occurrences + 1,
+                         'last_seen_at' => now(),
                          'raw_data' => $payload,
                          'updated_at' => now(), // bump timestamp
                     ]);
@@ -60,6 +62,8 @@ class BadIpWebhookController extends Controller
                     'dest_port'        => $destPort,
                     'proto'            => $proto,
                     'signature_severity' => $signatureSeverity,
+                    'occurrences'      => 1,
+                    'last_seen_at'     => now(),
                     'raw_data'         => $payload,
                     'status'           => 'New',
                 ]);

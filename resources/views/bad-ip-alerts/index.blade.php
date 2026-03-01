@@ -140,6 +140,9 @@
                             <!-- Source IP -->
                             <td class="px-5 py-3">
                                 <span class="px-2 py-1 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20 text-xs font-mono" x-text="alert.src_ip"></span>
+                                <template x-if="alert.occurrences > 1">
+                                    <span class="inline-flex items-center justify-center min-w-[1.25rem] px-1 py-0.5 ml-1.5 rounded bg-rose-500/20 text-rose-300 text-[10px] font-bold border border-rose-500/30 shrink-0" x-text="alert.occurrences + 'x'"></span>
+                                </template>
                             </td>
                             <!-- Destination -->
                             <td class="px-5 py-3">
