@@ -64,13 +64,27 @@ def main(args):
         debug(f"Error reading alert file: {e}")
         sys.exit(1)
 
-    # === PASSTHROUGH LOGIC ===
+    # === ALLOWED ALERTS FILTERING ===
+    # Only alerts whose rule description starts with these keywords will be sent.
+    ALLOWED_ALERT_PREFIXES = [
+        "Suricata: Alert - ET CINS Active Threat Intelligence Poor Reputation IP group",
+        "Suricata: Alert - ET DROP Spamhaus DROP Listed Traffic Inbound group",
+        "Suricata: Alert - ET DROP Dshield Block Listed Source group"
+    ]
+
     rule_desc = alert.get("rule", {}).get("description", "")
     alert_cat = alert.get("data", {}).get("alert", {}).get("category", "")
     
-    debug(f"Processng alert: {rule_desc} | Category: {alert_cat}")
-
-    debug("# Sending Bad IP alert to SecOps Webhook")
+    matched = False
+    for prefix in ALLOWED_ALERT_PREFIXES:
+        if rule_desc.lower().startswith(prefix.lower()):
+            matched = True
+            debug(f"Alert matched allowed bad IP prefix: '{prefix}'")
+            break
+            
+    if not matched:
+        debug(f"Alert filtered out (no matching keyword for: {rule_desc} | {alert_cat})")
+        return  # Stop executing
     send_to_secops(alert, hook_url)
 
 def send_to_secops(payload, hook_url):
