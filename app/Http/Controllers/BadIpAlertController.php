@@ -34,6 +34,13 @@ class BadIpAlertController extends Controller
             'resolved' => BadIpAlert::where('status', 'Resolved')->count(),
         ];
 
+        if ($request->wantsJson()) {
+            return response()->json([
+                'alerts' => $alerts,
+                'stats' => $stats
+            ]);
+        }
+
         return view('bad-ip-alerts.index', compact('alerts', 'stats'));
     }
 
