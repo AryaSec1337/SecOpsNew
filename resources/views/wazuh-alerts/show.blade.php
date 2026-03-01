@@ -231,7 +231,7 @@
                     Full Log
                 </h3>
                 <div class="bg-slate-900/80 rounded-lg p-4 overflow-x-auto">
-                    <pre class="text-xs text-slate-300 font-mono whitespace-pre-wrap leading-relaxed">{{ $wazuhAlert->full_log ?? 'No log data available.' }}</pre>
+                    <pre class="text-xs text-slate-300 font-mono whitespace-pre-wrap leading-relaxed">{{ $wazuhAlert->full_log ?: "Original 'full_log' string was not provided by Wazuh.\n(This is normal for JSON/structured logs like Suricata where data is fully parsed. See 'Event Data' above or 'Raw JSON' below.)" }}</pre>
                 </div>
                 @if($wazuhAlert->location)
                 <div class="mt-3 text-[10px] text-slate-500">
