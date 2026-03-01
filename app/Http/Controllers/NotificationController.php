@@ -15,13 +15,15 @@ class NotificationController extends Controller
     {
         $fumAlertsPending = WebhookAlert::where('status', 'Pending')->count();
         $wazuhAlertsNew = WazuhAlert::where('status', 'New')->count();
+        $badIpAlertsNew = \App\Models\BadIpAlert::where('status', 'New')->count();
 
         return response()->json([
             'fum_alerts' => $fumAlertsPending,
             'wazuh_alerts' => $wazuhAlertsNew,
-            'webhook_total' => $fumAlertsPending + $wazuhAlertsNew,
+            'badip_alerts' => $badIpAlertsNew,
+            'webhook_total' => $fumAlertsPending + $wazuhAlertsNew + $badIpAlertsNew,
             // You can add more counts here later
-            'total' => $fumAlertsPending + $wazuhAlertsNew,
+            'total' => $fumAlertsPending + $wazuhAlertsNew + $badIpAlertsNew,
         ]);
     }
 }

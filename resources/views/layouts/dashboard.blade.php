@@ -295,6 +295,39 @@
              class="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 md:hidden"></div>
     </div>
 
+    <!-- Top Right Global Toast Notifications -->
+    <div class="fixed top-4 right-4 z-[60] flex flex-col gap-3 pointer-events-none" id="toast-container">
+        <template x-for="(toast, index) in toasts" :key="toast.id">
+            <div x-show="toast.visible" 
+                 x-transition:enter="transition ease-out duration-300 transform"
+                 x-transition:enter-start="translate-x-full opacity-0"
+                 x-transition:enter-end="translate-x-0 opacity-100"
+                 x-transition:leave="transition ease-in duration-200 transform"
+                 x-transition:leave-start="translate-x-0 opacity-100"
+                 x-transition:leave-end="translate-x-full opacity-0"
+                 @click="toast.link ? window.location.href = toast.link : null"
+                 class="pointer-events-auto bg-slate-900 border border-slate-700 shadow-2xl rounded-xl p-4 flex items-start gap-3 w-80 cursor-pointer hover:border-slate-500 transition-colors">
+                
+                <!-- Icon -->
+                <div class="shrink-0 rounded-full p-2" :class="toast.iconClass">
+                    <div x-html="toast.iconSvg"></div>
+                </div>
+
+                <!-- Content -->
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-bold text-white truncate" x-text="toast.title"></p>
+                    <p class="text-xs text-slate-400 mt-1 line-clamp-2" x-text="toast.message"></p>
+                    <p class="text-[10px] text-slate-500 mt-2 font-mono" x-text="toast.time"></p>
+                </div>
+
+                <!-- Close -->
+                <button @click.stop="toast.visible = false" class="text-slate-500 hover:text-white transition-colors shrink-0">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+        </template>
+    </div>
+
     @stack('scripts')
     
     <script>
@@ -304,17 +337,70 @@
                 notifications: {
                     fum_alerts: 0,
                     wazuh_alerts: 0,
+                    badip_alerts: 0,
                     total: 0
                 },
+                toasts: [],
+                toastIdCounter: 0,
+                
                 init() {
-                    this.fetchNotifications();
+                    this.fetchNotifications(true); // Initial fetch avoids triggering toasts
                     // Poll exactly every 10 seconds
-                    setInterval(() => this.fetchNotifications(), 10000);
+                    setInterval(() => this.fetchNotifications(false), 10000);
                 },
-                fetchNotifications() {
-                    fetch('/notifications/pending')
+
+                addToast(title, message, iconClass, iconSvg, link = null) {
+                    const id = ++this.toastIdCounter;
+                    const now = new Date();
+                    const timeString = now.toLocaleTimeString('en-US', { hour12: false });
+
+                    const newToast = { 
+                        id, 
+                        title, 
+                        message, 
+                        iconClass, 
+                        iconSvg, 
+                        link,
+                        time: timeString,
+                        visible: true 
+                    };
+                    
+                    this.toasts.push(newToast);
+
+                    // Auto dismiss after 7 seconds
+                    setTimeout(() => {
+                        const toastParam = this.toasts.find(t => t.id === id);
+                        if(toastParam) toastParam.visible = false;
+                        
+                        // Clean array after animation
+                        setTimeout(() => {
+                            this.toasts = this.toasts.filter(t => t.id !== id);
+                        }, 500);
+                    }, 7000);
+                },
+
+                fetchNotifications(isInitial = false) {
+                    fetch('/notifications/pending', {
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Accept': 'application/json'
+                            }
+                        })
                         .then(res => res.json())
                         .then(data => {
+                            
+                            // Check Bad IP Alerts
+                            if (!isInitial && data.badip_alerts && data.badip_alerts > this.notifications.badip_alerts) {
+                                const diff = data.badip_alerts - this.notifications.badip_alerts;
+                                const title = 'New Bad IP Alert Detected!';
+                                const msg = diff > 1 ? `${diff} new malicious IPs detected by Suricata.` : 'A new malicious IP has been detected by Suricata.';
+                                const iconClass = 'bg-rose-500/20 text-rose-400';
+                                const iconSvg = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>';
+                                const targetUrl = "{{ route('bad-ip-alerts.index') }}";
+                                
+                                this.addToast(title, msg, iconClass, iconSvg, targetUrl);
+                            }
+
                             this.notifications = data;
                         })
                         .catch(err => console.error('Error fetching notifications:', err));
