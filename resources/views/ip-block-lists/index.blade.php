@@ -88,7 +88,6 @@
                 <thead>
                     <tr class="bg-slate-900/80 border-b border-white/5 text-[10px] uppercase tracking-widest text-slate-500">
                         <th class="px-5 py-4 w-12 text-center">No.</th>
-                        <th class="px-5 py-4 font-bold">Severity</th>
                         <th class="px-5 py-4 font-bold">Source IP Info</th>
                         <th class="px-5 py-4 font-bold">Destination</th>
                         <th class="px-5 py-4 font-bold">Context / Reason</th>
@@ -101,22 +100,6 @@
                         <tr class="hover:bg-white/[0.02] transition-colors group">
                             <td class="px-5 py-3 text-center text-slate-500 text-xs">{{ $index + 1 }}</td>
                             
-                            <!-- Severity -->
-                            <td class="px-5 py-3">
-                                @php
-                                    $severityColor = match(strtolower((string)$ip->signature_severity)) {
-                                        '1', 'high' => 'rose',
-                                        '2', 'medium' => 'orange',
-                                        '3', 'low' => 'amber',
-                                        '4', 'informational', 'info' => 'blue',
-                                        default => 'slate'
-                                    };
-                                @endphp
-                                <span class="px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider border bg-{{$severityColor}}-500/20 text-{{$severityColor}}-400 border-{{$severityColor}}-500/30">
-                                    {{ $ip->signature_severity ?: 'N/A' }}
-                                </span>
-                            </td>
-
                             <!-- IP Address & Source -->
                             <td class="px-5 py-3">
                                 <div class="flex flex-col gap-1">
@@ -181,7 +164,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="px-5 py-12 text-center">
+                            <td colspan="6" class="px-5 py-12 text-center">
                                 <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-800 border border-slate-700 mb-4">
                                     <svg class="w-8 h-8 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                 </div>
