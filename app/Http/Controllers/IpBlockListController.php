@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreIpBlockListRequest;
 use App\Http\Requests\UpdateIpBlockListRequest;
 use App\Models\IpBlockList;
+use Illuminate\Http\Request;
 
 class IpBlockListController extends Controller
 {
