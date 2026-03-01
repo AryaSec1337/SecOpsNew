@@ -77,6 +77,45 @@ def main(args):
         debug(f"Alert filtered out (no matching keyword for: {rule_desc})")
         return  # Stop executing
 
+    # === DEDUPLICATION LOGIC ===
+    DEDUP_WINDOW_SECONDS = 3600  # 1 hour
+    cache_file = f"{pwd}/logs/badip-cache.json"
+    
+    src_ip = alert.get("data", {}).get("src_ip", "")
+    if not src_ip:
+        src_ip = alert.get("data", {}).get("srcip", "")
+        
+    if src_ip:
+        current_time = time.time()
+        cache = {}
+        
+        # Read cache
+        if os.path.exists(cache_file):
+            try:
+                with open(cache_file, 'r') as f:
+                    cache = json.load(f)
+            except Exception as e:
+                debug(f"Error reading cache: {e}")
+                
+        # Check if duplicate
+        last_seen = cache.get(src_ip, 0)
+        if current_time - last_seen < DEDUP_WINDOW_SECONDS:
+            debug(f"Alert filtered out (Duplicate IP {src_ip} within last {DEDUP_WINDOW_SECONDS}s)")
+            return
+            
+        # Update cache
+        cache[src_ip] = current_time
+        
+        # Clean up old entries to prevent infinite growth
+        cache = {ip: ts for ip, ts in cache.items() if current_time - ts < DEDUP_WINDOW_SECONDS}
+        
+        # Write cache
+        try:
+            with open(cache_file, 'w') as f:
+                json.dump(cache, f)
+        except Exception as e:
+            debug(f"Error writing cache: {e}")
+
     debug("# Sending Bad IP alert to SecOps Webhook")
     send_to_secops(alert, hook_url)
 
