@@ -146,10 +146,10 @@
                                 </div>
                             </td>
                             <!-- Rule -->
-                            <td class="px-5 py-3">
+                            <td class="px-5 py-3 whitespace-normal min-w-[250px] max-w-md">
                                 <div>
-                                    <div class="font-bold text-white group-hover:text-blue-400 transition-colors text-xs">{{ Str::limit($alert->rule_description, 50) }}</div>
-                                    <div class="text-[10px] text-slate-500 font-mono mt-0.5">Rule {{ $alert->rule_id }}
+                                    <div class="font-bold text-white group-hover:text-blue-400 transition-colors text-xs leading-relaxed">{{ $alert->rule_description }}</div>
+                                    <div class="text-[10px] text-slate-500 font-mono mt-1">Rule {{ $alert->rule_id }}
                                         @if($alert->rule_groups)
                                             &bull; {{ implode(', ', array_slice($alert->rule_groups, 0, 3)) }}
                                         @endif
