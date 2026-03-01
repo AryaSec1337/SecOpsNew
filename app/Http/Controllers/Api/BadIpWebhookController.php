@@ -24,6 +24,24 @@ class BadIpWebhookController extends Controller
                 $ruleDesc = $payload['rule']['description'] ?? null;
                 if (!$ruleDesc) continue;
 
+                $allowedPrefixes = [
+                    "Suricata: Alert - ET CINS Active Threat Intelligence Poor Reputation IP group",
+                    "Suricata: Alert - ET DROP Spamhaus DROP Listed Traffic Inbound group",
+                    "Suricata: Alert - ET DROP Dshield Block Listed Source group"
+                ];
+
+                $matched = false;
+                foreach ($allowedPrefixes as $prefix) {
+                    if (str_starts_with(strtolower($ruleDesc), strtolower($prefix))) {
+                        $matched = true;
+                        break;
+                    }
+                }
+
+                if (!$matched) {
+                    continue; // Skip silently if it doesn't match our strict bad IP criteria
+                }
+
                 $data = $payload['data'] ?? [];
                 
                 // Extract network values
