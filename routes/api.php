@@ -24,3 +24,4 @@ Route::middleware([\App\Http\Middleware\CheckAgentToken::class])->group(function
 // SecOps Webhook Routes
 Route::post('/webhook/file-scan', [\App\Http\Controllers\Api\WebhookScanController::class, 'handle']);
 Route::post('/webhook/wazuh-alert', [\App\Http\Controllers\Api\WazuhWebhookController::class, 'handle']);
+Route::post('/webhook/bad-ip', [\App\Http\Controllers\Api\BadIpWebhookController::class, 'handle']);

@@ -178,6 +178,13 @@ Route::prefix('wazuh-alerts')->name('wazuh-alerts.')->middleware('auth')->group(
     Route::post('/{wazuhAlert}/incident', [\App\Http\Controllers\WazuhAlertController::class, 'createIncident'])->name('incident');
 });
 
+// Bad IP Alerts (External CTI Webhook)
+Route::prefix('bad-ip-alerts')->name('bad-ip-alerts.')->middleware('auth')->group(function () {
+    Route::get('/', [\App\Http\Controllers\BadIpAlertController::class, 'index'])->name('index');
+    Route::post('/bulk-resolve', [\App\Http\Controllers\BadIpAlertController::class, 'bulkResolve'])->name('bulk-resolve');
+    Route::patch('/{badIpAlert}/status', [\App\Http\Controllers\BadIpAlertController::class, 'updateStatus'])->name('update-status');
+});
+
 // Phishing Link Scanner
 Route::prefix('url-scanner')->name('url-scanner.')->middleware('auth')->group(function () {
     Route::get('/', [\App\Http\Controllers\UrlScannerController::class, 'index'])->name('index');
