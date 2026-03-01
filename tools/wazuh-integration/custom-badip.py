@@ -64,23 +64,11 @@ def main(args):
         debug(f"Error reading alert file: {e}")
         sys.exit(1)
 
-    # === FILTERING LOGIC ===
-    rule_desc = alert.get("rule", {}).get("description", "").lower()
-    alert_cat = alert.get("data", {}).get("alert", {}).get("category", "").lower()
+    # === PASSTHROUGH LOGIC ===
+    rule_desc = alert.get("rule", {}).get("description", "")
+    alert_cat = alert.get("data", {}).get("alert", {}).get("category", "")
     
-    # Check for keywords anywhere in the description or category
-    malicious_keywords = ["poor reputation", "drop", "dshield", "malware", "trojan", "cins", "compromised", "bad ip", "blacklist", "cnc", "botnet"]
-    
-    matched = False
-    for kw in malicious_keywords:
-        if kw in rule_desc or kw in alert_cat:
-            matched = True
-            debug(f"Alert matched allowed bad IP keyword: '{kw}'")
-            break
-    
-    if not matched:
-        debug(f"Alert filtered out (no matching keyword for: {rule_desc} | {alert_cat})")
-        return  # Stop executing
+    debug(f"Processng alert: {rule_desc} | Category: {alert_cat}")
 
     debug("# Sending Bad IP alert to SecOps Webhook")
     send_to_secops(alert, hook_url)
