@@ -24,6 +24,7 @@ class BadIpAlert extends Model
 
     protected $casts = [
         'raw_data' => 'array',
+        'last_seen_at' => 'datetime',
     ];
 
     // Helper to get tailwind colors based on Suricata Severity
