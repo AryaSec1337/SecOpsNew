@@ -37,7 +37,7 @@
         <div class="flex items-center gap-3">
             <!-- Create Incident Button -->
             @if($wazuhAlert->status !== 'Resolved')
-            <form method="POST" action="{{ route('wazuh-alerts.incident', $wazuhAlert->id) }}" onsubmit="return confirm('Are you sure you want to escalate this Wazuh Alert into an Incident Ticket? The alert will be marked as Resolved.')">
+            <form method="POST" action="{{ route('wazuh-alerts.incident', $wazuhAlert->id) }}" class="escalate-incident-form">
                 @csrf
                 <button type="submit" class="flex items-center gap-2 px-4 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 rounded-lg text-xs font-bold transition-colors border border-rose-500/20 hover:border-rose-500/40">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
@@ -291,4 +291,34 @@
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.escalate-incident-form').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                Swal.fire({
+                    title: 'Create Incident Ticket?',
+                    text: 'Are you sure you want to escalate this Wazuh Alert into an Incident Ticket? The alert will be marked as Resolved.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#f43f5e',
+                    cancelButtonColor: '#334155',
+                    confirmButtonText: 'Yes, escalate it!',
+                    background: '#1e293b',
+                    color: '#f8fafc',
+                    customClass: {
+                        popup: 'border border-slate-700 rounded-2xl',
+                        confirmButton: 'rounded-lg px-4 py-2 font-bold',
+                        cancelButton: 'rounded-lg px-4 py-2 font-bold border border-slate-600'
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        form.submit();
+                    }
+                });
+            });
+        });
+    });
+</script>
 @endsection
