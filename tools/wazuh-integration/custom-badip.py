@@ -12,13 +12,7 @@ except ImportError:
     print("Module 'requests' not found. Install with: pip install requests")
     sys.exit(1)
 
-# === ALLOWED ALERTS FILTERING ===
-# Only alerts whose rule description starts with these keywords will be sent.
-ALLOWED_ALERT_PREFIXES = [
-    "Suricata: Alert - ET CINS Active Threat Intelligence Poor Reputation IP group",
-    "Suricata: Alert - ET DROP Spamhaus DROP Listed Traffic Inbound group",
-    "Suricata: Alert - ET DROP Dshield Block Listed Source group"
-]
+# Removed hardcoded ALLOWED_ALERT_PREFIXES
 
 debug_enabled = True
 pwd = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
@@ -52,29 +46,40 @@ def main(args):
     debug(f"# Reading alert from: {alert_file}")
 
     try:
-        with open(alert_file, 'rb') as f:
-            last_line = f.read().decode('utf-8').splitlines()[-1]
-            if last_line.strip():
-                alert = json.loads(last_line)
-            else:
+        with open(alert_file, 'r') as f:
+            content = f.read().strip()
+            if not content:
                 debug("Alert file is empty.")
                 return
+                
+            try:
+                # Try parsing as a standard JSON object first
+                alert = json.loads(content)
+            except json.JSONDecodeError:
+                # Fallback to reading the last line (Wazuh NDJSON format)
+                last_line = content.splitlines()[-1]
+                alert = json.loads(last_line)
+                
     except Exception as e:
         debug(f"Error reading alert file: {e}")
         sys.exit(1)
 
     # === FILTERING LOGIC ===
-    rule_desc = alert.get("rule", {}).get("description", "")
+    rule_desc = alert.get("rule", {}).get("description", "").lower()
+    alert_cat = alert.get("data", {}).get("alert", {}).get("category", "").lower()
+    
+    # Check for keywords anywhere in the description or category
+    malicious_keywords = ["poor reputation", "drop", "dshield", "malware", "trojan", "cins", "compromised", "bad ip", "blacklist", "cnc", "botnet"]
     
     matched = False
-    for prefix in ALLOWED_ALERT_PREFIXES:
-        if rule_desc.lower().startswith(prefix.lower()):
+    for kw in malicious_keywords:
+        if kw in rule_desc or kw in alert_cat:
             matched = True
-            debug(f"Alert matched allowed bad IP prefix: '{prefix}'")
+            debug(f"Alert matched allowed bad IP keyword: '{kw}'")
             break
     
     if not matched:
-        debug(f"Alert filtered out (no matching keyword for: {rule_desc})")
+        debug(f"Alert filtered out (no matching keyword for: {rule_desc} | {alert_cat})")
         return  # Stop executing
 
     debug("# Sending Bad IP alert to SecOps Webhook")
