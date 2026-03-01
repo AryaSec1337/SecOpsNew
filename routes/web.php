@@ -50,6 +50,11 @@ Route::resource('blocked-ips', \App\Http\Controllers\BlockedIpController::class)
     ->only(['index', 'store', 'destroy'])
     ->middleware('auth');
 
+// Weekly List IP Block
+Route::resource('ip-block-lists', \App\Http\Controllers\IpBlockListController::class)
+    ->only(['index', 'store', 'update', 'destroy'])
+    ->middleware('auth');
+
 // Autocomplete Search Endpoints
 Route::get('/mitigation-logs/search-emails', [\App\Http\Controllers\MitigationLogController::class, 'searchEmails'])->name('mitigation-logs.search-emails')->middleware('auth');
 Route::get('/mitigation-logs/search-files', [\App\Http\Controllers\MitigationLogController::class, 'searchFiles'])->name('mitigation-logs.search-files')->middleware('auth');

@@ -452,7 +452,7 @@
 <script>
     document.addEventListener('alpine:init', () => {
         Alpine.data('ipAnalyzer', () => ({
-            ip: '',
+            ip: '{{ request("ip") }}',
             loading: false,
             result: null,
             error: false,
@@ -478,6 +478,9 @@
 
             init() {
                 this.fetchHistory();
+                if (this.ip) {
+                    this.analyzeIp();
+                }
             },
 
             // Computed property for paginated reports
